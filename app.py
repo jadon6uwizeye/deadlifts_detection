@@ -49,9 +49,9 @@ button = ck.CTkButton(window, text="RESET",height=40, width=120, text_color="bla
 button.place(x=10,y=600)
 
 frame = tk.Frame(height=480, width=480)
-frame.place(x=10, y=100)
+frame.place(x=10, y=90)
 lmain = tk.Label(frame)
-lmain.place = (0,0)
+lmain.place(x=0,y=0)
 
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
@@ -79,9 +79,18 @@ def detect():
                                 mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2))
 
     try:
-        pass
+        row = np.array([[res.x, res.y, res.z, res.visibility] for res in result.pose_landmarks.landmark]).flatten()
+        x = pd.DataFrame([row], columns = landmarks)
+        bodylang_prob = model.predict_proba(x)[0]
+        bodylang_class = model.predict(x)[0]
+        if bodylang_class =="down" and bodylang_prob[bodylang_prob.argmax()] > 0.5:
+            current_stage = "down"
+            
+        elif current_stage == "down" and bodylang_class =="up" and bodylang_prob[bodylang_prob.argmax()] > 0.5:
+            current_stage = "up"
+            counter += 1
     except Exception as e:
-        pass
+        print(e)
 
     img = image[:, :460, :]
     imgarr = Image.fromarray(img)
@@ -89,6 +98,10 @@ def detect():
     lmain.imgtk = imgtk
     lmain.configure(image=imgtk)
     lmain.after(10, detect)
+
+    counteBox.configure(text=str(counter))
+    ProbBox.configure(text=str(bodylang_prob[bodylang_prob.argmax()]))
+    classBox.configure(text=str(current_stage))
 
 detect()
 
